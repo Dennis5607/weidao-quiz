@@ -661,6 +661,7 @@
             <div class="podium-avatar" style="background:${avatarGradient(r.name)}">${avatarInitial(r.name)}</div>
             <div class="podium-name">${r.name}</div>
             <div class="podium-score">${r.bestScore} · ${r.bestAccuracy}%</div>
+            <div class="podium-time">用時 ${formatTime(r.bestDuration)}</div>
           </div>`;
         })
         .join("");
@@ -683,6 +684,7 @@
             <td><span class="leader-name-cell"><span class="leader-avatar-sm" style="background:${avatarGradient(r.name)}">${avatarInitial(r.name)}</span>${r.name}${youTag}</span></td>
             <td>${r.bestScore}</td>
             <td>${r.bestAccuracy}%</td>
+            <td>${formatTime(r.bestDuration)}</td>
             <td>${r.attempts}</td>
             <td>${formatDate(r.lastDate)}</td>
           </tr>`;
