@@ -359,7 +359,9 @@
       startTime: Date.now(),
       elapsedSec: 0,
       timerHandle: null,
-      locked: false
+      locked: false,
+      finished: false,
+      autoFinishTimer: null
     };
     state.quiz.timerHandle = setInterval(() => {
       state.quiz.elapsedSec = Math.floor((Date.now() - state.quiz.startTime) / 1000);
@@ -406,6 +408,7 @@
 
     qs("#quizFeedback").hidden = true;
     qs("#quizNextBtn").hidden = true;
+    qs("#quizAutoNote").hidden = true;
   }
 
   function selectOption(key) {
@@ -446,14 +449,29 @@
       streakChip.hidden = true;
     }
 
+    const isLast = quiz.index === quiz.ids.length - 1;
     const nextBtn = qs("#quizNextBtn");
     nextBtn.hidden = false;
-    qs("#quizNextLabel").textContent = quiz.index === quiz.ids.length - 1 ? "查看成績" : "下一題";
+    qs("#quizNextLabel").textContent = isLast ? "查看成績" : "下一題";
+
+    const autoNote = qs("#quizAutoNote");
+    if (isLast) {
+      autoNote.hidden = false;
+      quiz.autoFinishTimer = setTimeout(() => {
+        if (state.view === "quiz") finishQuiz();
+      }, 1800);
+    } else {
+      autoNote.hidden = true;
+    }
   }
 
   function initQuizNext() {
     qs("#quizNextBtn").addEventListener("click", () => {
       const quiz = state.quiz;
+      if (quiz.autoFinishTimer) {
+        clearTimeout(quiz.autoFinishTimer);
+        quiz.autoFinishTimer = null;
+      }
       if (quiz.index === quiz.ids.length - 1) {
         finishQuiz();
       } else {
@@ -465,6 +483,12 @@
 
   function finishQuiz() {
     const quiz = state.quiz;
+    if (quiz.finished) return;
+    quiz.finished = true;
+    if (quiz.autoFinishTimer) {
+      clearTimeout(quiz.autoFinishTimer);
+      quiz.autoFinishTimer = null;
+    }
     clearInterval(quiz.timerHandle);
     qs("#quizProgressFill").style.width = "100%";
 
