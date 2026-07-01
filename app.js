@@ -89,9 +89,40 @@
     const list = loadHistory();
     list.push(record);
     saveHistory(list);
+    return syncAttemptToCloud(record);
   }
   function myHistory() {
     return loadHistory().filter((r) => r.name === state.player);
+  }
+
+  /* ---------------- cloud sync (Firestore, shared across devices) ---------------- */
+  function waitForCloudDB(timeoutMs) {
+    return new Promise((resolve) => {
+      if (window.CloudDB) return resolve(window.CloudDB);
+      const onReady = () => {
+        window.removeEventListener("clouddb-ready", onReady);
+        resolve(window.CloudDB || null);
+      };
+      window.addEventListener("clouddb-ready", onReady);
+      setTimeout(() => {
+        window.removeEventListener("clouddb-ready", onReady);
+        resolve(window.CloudDB || null);
+      }, timeoutMs);
+    });
+  }
+
+  async function syncAttemptToCloud(record) {
+    const cloud = await waitForCloudDB(4000);
+    if (!cloud) return false;
+    return cloud.saveAttempt(record);
+  }
+
+  async function refreshHistoryFromCloud() {
+    const cloud = await waitForCloudDB(4000);
+    if (!cloud) return null;
+    const records = await cloud.fetchAllAttempts();
+    if (records) saveHistory(records);
+    return records;
   }
 
   /* ---------------- login gate ---------------- */
@@ -146,10 +177,28 @@
     qs("#sidebar").classList.remove("is-open");
     window.scrollTo(0, 0);
 
-    if (name === "dashboard") renderDashboard();
-    if (name === "history") renderHistory();
+    if (name === "dashboard") {
+      renderDashboard();
+      refreshHistoryFromCloud().then((r) => {
+        if (r && state.view === "dashboard") renderDashboard();
+      });
+    }
+    if (name === "history") {
+      renderHistory();
+      refreshHistoryFromCloud().then((r) => {
+        if (r && state.view === "history") renderHistory();
+      });
+    }
     if (name === "bank") renderBank();
-    if (name === "leaderboard") renderLeaderboard();
+    if (name === "leaderboard") {
+      renderLeaderboard();
+      const note = qs("#leaderboardSyncNote");
+      if (note) note.textContent = "同步中…";
+      refreshHistoryFromCloud().then((r) => {
+        if (note) note.textContent = "";
+        if (r && state.view === "leaderboard") renderLeaderboard();
+      });
+    }
   }
 
   function initNav() {
@@ -429,10 +478,25 @@
       bestStreak: quiz.bestStreak,
       questionIds: quiz.ids.slice()
     };
-    addHistoryRecord(record);
+    const cloudSaved = addHistoryRecord(record);
 
     renderResults(record, quiz);
     showView("results");
+
+    cloudSaved
+      .then(() => refreshHistoryFromCloud())
+      .then((r) => {
+        if (r && state.view === "results") updateRankCallout();
+      });
+  }
+
+  function updateRankCallout() {
+    const board = computeLeaderboard();
+    const myRank = board.findIndex((r) => r.name === state.player) + 1;
+    qs("#rankCallout").innerHTML = myRank
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M6 4h12v4a6 6 0 0 1-12 0V4Z"/></svg>
+         你目前在排行榜排名第 <b>${myRank}</b> 名（共 ${board.length} 人挑戰過）`
+      : "";
   }
 
   function renderResults(record, quiz) {
@@ -456,12 +520,7 @@
     else msg = "沒關係，檢討錯題後再挑戰一次吧！";
     qs("#resultsMsg").textContent = msg;
 
-    const board = computeLeaderboard();
-    const myRank = board.findIndex((r) => r.name === state.player) + 1;
-    qs("#rankCallout").innerHTML = myRank
-      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M6 4h12v4a6 6 0 0 1-12 0V4Z"/></svg>
-         你目前在排行榜排名第 <b>${myRank}</b> 名（共 ${board.length} 人挑戰過）`
-      : "";
+    updateRankCallout();
 
     qs("#reviewList").innerHTML = quiz.ids
       .map((id, i) => {
@@ -517,11 +576,8 @@
 
   function initHistoryActions() {
     qs("#clearHistoryBtn").addEventListener("click", () => {
-      if (confirm(`確定要清除 ${state.player} 的所有練習紀錄嗎？此動作無法復原。`)) {
-        const rest = loadHistory().filter((r) => r.name !== state.player);
-        saveHistory(rest);
-        renderHistory();
-        toast("已清除練習紀錄");
+      if (confirm("練習成績會同步保存在雲端排行榜，無法從這裡刪除。要清除的話請聯絡老師處理。")) {
+        toast("成績已同步到雲端，無法自行清除");
       }
     });
   }
