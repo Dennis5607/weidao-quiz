@@ -179,7 +179,7 @@ const QUESTION_BANK = [
         <polygon points="40,170 40,80 120,80 120,30 210,30 210,170" fill="none" stroke="#2952E3" stroke-width="2" stroke-linejoin="round"/>
         <text x="14" y="128" font-size="12" fill="#475569">3</text>
         <text x="62" y="72" font-size="12" fill="#475569">x＋3</text>
-        <text x="128" y="58" font-size="12" fill="#475569">3x－5</text>
+        <text x="140" y="22" font-size="12" fill="#475569">3x－5</text>
         <text x="216" y="102" font-size="12" fill="#475569">5</text>
       </svg>
       <p class="q-diagram-caption">圖中每個角皆為直角</p>
