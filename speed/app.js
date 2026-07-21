@@ -1,11 +1,11 @@
-/* 衛道圓夢營 - 練習系統邏輯 */
+/* 衛道圓夢營 - 速率練習系統邏輯 */
 (function () {
   "use strict";
 
-  const HISTORY_KEY = "weidao_quiz_history_v2";
+  const HISTORY_KEY = "weidao_speed_history_v1";
   const PLAYER_KEY = "weidao_current_player";
   const REQUIRED_PICKS = 10;
-  const QUIZ_ID = "algebra40";
+  const QUIZ_ID = "speed100";
   const AVATAR_GRADIENTS = [
     ["#2B69A6", "#3F87CB"],
     ["#646464", "#8A8A8A"],
@@ -123,7 +123,7 @@
     if (!cloud) return null;
     const records = await cloud.fetchAllAttempts();
     if (!records) return null;
-    const mine = records.filter((r) => !r.quiz || r.quiz === QUIZ_ID);
+    const mine = records.filter((r) => r.quiz === QUIZ_ID);
     saveHistory(mine);
     return mine;
   }
@@ -192,7 +192,6 @@
         if (r && state.view === "history") renderHistory();
       });
     }
-    if (name === "bank") renderBank();
     if (name === "leaderboard") {
       renderLeaderboard();
       const note = qs("#leaderboardSyncNote");
@@ -383,7 +382,7 @@
 
     qs("#quizProgressFill").style.width = `${(quiz.index / total) * 100}%`;
     qs("#quizCounter").textContent = `第 ${quiz.index + 1} / ${total} 題`;
-    qs("#quizTopic").textContent = q.topic || "代數式";
+    qs("#quizTopic").textContent = q.topic || "速率";
     qs("#quizExtra").innerHTML = q.extra || "";
     qs("#quizText").innerHTML = q.text;
 
@@ -543,7 +542,7 @@
     });
 
     let msg;
-    if (record.accuracy >= 90) msg = "太棒了！你已經是代數式高手了。";
+    if (record.accuracy >= 90) msg = "太棒了！你已經是速率換算高手了。";
     else if (record.accuracy >= 70) msg = "表現不錯，再多練習幾次會更穩！";
     else msg = "沒關係，檢討錯題後再挑戰一次吧！";
     qs("#resultsMsg").textContent = msg;
@@ -697,44 +696,11 @@
     }
   }
 
-  /* ---------------- bank view ---------------- */
-  function renderBank() {
-    qs("#bankList").innerHTML = QUESTION_BANK.map((q) => {
-      const optionsHtml = Object.entries(q.options)
-        .map(([key, val]) => `<div class="${key === q.answer ? "is-answer" : ""}">（${key}）${val}</div>`)
-        .join("");
-      return `<div class="bank-item">
-        <div class="bank-item-head">
-          <span class="bank-item-num">第 ${q.id} 題</span>
-          <span class="topic-tag">${q.topic || "代數式"}</span>
-        </div>
-        ${q.extra || ""}
-        <div class="bank-item-text">${q.text}</div>
-        <div class="bank-item-options">${optionsHtml}</div>
-        <button class="bank-toggle" data-id="${q.id}">顯示解析</button>
-        <div class="bank-explain" id="explain-${q.id}">正確答案：（${q.answer}）　${q.explanation}</div>
-      </div>`;
-    }).join("");
-
-    qsa(".bank-toggle").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const panel = qs(`#explain-${btn.dataset.id}`);
-        const open = panel.classList.toggle("is-open");
-        btn.textContent = open ? "隱藏解析" : "顯示解析";
-      });
-    });
-  }
-
-  function initBankActions() {
-    qs("#printBankBtn").addEventListener("click", () => window.print());
-  }
-
   /* ---------------- init ---------------- */
   document.addEventListener("DOMContentLoaded", () => {
     initLogin();
     initNav();
     initQuizNext();
     initHistoryActions();
-    initBankActions();
   });
 })();
